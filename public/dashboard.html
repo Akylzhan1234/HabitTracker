@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta>
+  <meta charset="UTF-8">
+  <title>Habit Tracker</title>
+  <link rel="stylesheet" href="styles1.css"> <!-- Make sure styles1.css includes the refresh button styles -->
+  <meta name="viewport" content="initial-scale=0.6, user-scalable=no">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="greeting">
+        <h1>Hi, <span class="name"></span></h1>
+        <p>Let’s create habits together!</p><br>
+        <button class="feeling-button">HOW ARE YOU FEELING?</button>
+      </div>
+      <!-- Motivation Box with IDs -->
+      <div class="motivation-box">
+        <h4>Motivation of the day</h4>
+        <p id="motivationText">Loading motivation...</p>
+        <button id="refreshMotivationBtn" title="Get new motivation">↻</button> <!-- Use the refresh symbol you prefer -->
+      </div>
+      <a href="#" class="logout-button" id="logout">Logout</a>
+    </div>
+
+    <div class="actions">
+      <h3>My Habits</h3>
+      <form onsubmit="event.preventDefault(); AddHabbit();">
+        <input type="text" id="NewHabit" placeholder="Reading">
+        <button type="submit" class="add-button">ADD</button>
+      </form>
+    </div>
+    <form method="post">
+      <button type="button" id="filter-all" class="all">📋 All</button>
+      <button type="button" id="filter-completed" class="completed">✅ Completed</button>
+      <button type="button" id="filter-active" class="active">⚡ Active</button>
+      <button type="button" id="filter-new" class="new">🆕 New</button>
+    </form>
+    <!-- This is where habit cards will be injected -->
+    <div id="habits" class="habits-container">
+      <!-- Habit cards will be injected here by JS -->
+
+      <!-- ****** MOVED AI Coach Card HERE ****** -->
+      <div class="ai-coach-card">
+        <div class="ai-card-header">
+            <div class="ai-icon">AI</div>
+            <h4>Habit coach</h4>
+        </div>
+        <p class="ai-card-description">
+            Chat with the AI as a habit coach — it will suggest useful habits based on your goals
+        </p>
+        <div class="ai-card-visual">
+            <img src="ai-coach-illustration.png" alt="AI Coach Illustration" class="ai-illustration">
+            <div class="ai-chat-bubble">I have no motivation. Help me!</div>
+        </div>
+        <button class="ai-chat-open-btn" id="openAiChatBtn" title="Chat with AI Coach">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        </button>
+      </div>
+      <!-- ****** END MOVED AI Coach Card ****** -->
+
+    </div> <!-- End of habits-container -->
+
+  </div> <!-- End of container -->
+  <!-- ****** NEW: AI Chat Modal ****** -->
+<div id="aiChatModal" class="modal">
+  <div class="modal-content ai-chat-modal-content">
+    <!-- Added specific class to target this close button -->
+    <span class="close-button close-ai-chat-modal">×</span>
+    <h2>AI Habit Coach</h2>
+    <div id="aiChatMessages" class="ai-chat-messages">
+      <!-- Initial AI message -->
+      <div class="ai-message">Hi! How can I help you with your habits today? Ask for suggestions based on your goals (e.g., "Suggest a habit for more energy") or tell me if you need motivation!</div>
+    </div>
+    <div class="ai-chat-input-area">
+      <input type="text" id="aiChatInput" placeholder="Type your message...">
+      <button id="sendAiChatMessageBtn">Send</button>
+    </div>
+  </div>
+</div>
+<!-- ****** END NEW AI Chat Modal ****** -->
+  <div id="feelingModal" class="modal">
+    <!-- Modal content -->
+    <div class="modal-content">
+      <span class="close-button-feeling">×</span>
+      <h2>How are you feeling today?</h2>
+      <input type="text" id="feelingInput" placeholder="e.g., stressed, happy, curious...">
+      <button id="getSuggestionBtn" class="suggestion-trigger-button">Get Suggestion</button>
+      <div class="suggestion-box">
+        <h3>Suggestion:</h3>
+        <p id="feelingSuggestion">Enter how you feel and click the button above.</p>
+      </div>
+    </div>
+  </div>
+    <!-- ****** Logout Confirmation Modal ****** -->
+    <div id="logoutConfirmModal" class="modal">
+      <div class="modal-content">
+        <!-- Use a unique ID or class for the close button if needed -->
+        <span class="close-button" id="closeLogoutModalBtn">×</span>
+        <h2>Confirm Logout</h2>
+        <p>Are you sure you want to sign out?</p>
+        <div class="modal-actions">
+            <button id="confirmLogoutBtn" class="confirm-button">Yes,
+  <!-- ****** SCRIPT BLOCK 1: Habit Logic, Modal Logic, AND Motivation Logic ****** -->
+  <script>
+    const habitsContainer = document.getElementById("habits");
+    window.onload = function () {
+      const storedHabits = JSON.parse(localStorage.getItem("habits")) || [];
+      storedHabits.forEach(h => AddHabbit(h.title, h.checks));
+    };
+
+    function saveHabitsToStorage() {
+  // Select ONLY habit boxes, excluding the AI card
+  const habitBoxes = document.querySelectorAll("#habits .habit-box"); // More specific selector
+  const habits = [];
+  habitBoxes.forEach(box => {
+    // ... rest of the function remains the same ...
+    const title = box.querySelector(".editable-title")?.textContent;
+    const checks = Array.from(box.querySelectorAll("input[type='checkbox']")).map(cb => cb.checked);
+    if (title) { // Only save if title exists
+         habits.push({ title, checks });
+    }
+  });
+  localStorage.setItem("habits", JSON.stringify(habits));
+}
+
+    function filterHabits(type) {
+      // ... (your existing filterHabits code) ...
+      const boxes = document.querySelectorAll(".habit-box");
+      boxes.forEach(box => {
+        const checks = Array.from(box.querySelectorAll("input[type='checkbox']")).map(cb => cb.checked);
+        const checkedCount = checks.filter(v => v).length;
+        let display = false;
+        if (type === 'all') {
+            display = true;
+        } else if (type === "completed" && checkedCount === 7) {
+            display = true;
+        } else if (type === "active" && checkedCount >= 1 && checkedCount < 7) {
+            display = true;
+        } else if (type === "new" && checkedCount === 0) {
+            display = true;
+        }
+        box.style.display = display ? "flex" : "none"; // Use 'flex' if that's your default display for habit boxes
+      });
+    }
+
+
+    document.getElementById("filter-completed").addEventListener("click", () => filterHabits("completed"));
+    document.getElementById("filter-active").addEventListener("click", () => filterHabits("active"));
+    document.getElementById("filter-new").addEventListener("click", () => filterHabits("new"));
+    document.getElementById("filter-all").addEventListener("click", () => {
+        const boxes = document.querySelectorAll(".habit-box");
+        boxes.forEach(box => box.style.display = "flex"); // Use 'flex' if that's your default display for habit boxes
+    });
+
+
+    function AddHabbit(name = "", checks = []) {
+      // ... (your existing AddHabbit code) ...
+        const habitName = name || document.getElementById("NewHabit").value.trim();
+        if (!habitName) return;
+
+        const container = document.createElement("div");
+        container.className = "habit-box";
+
+        const title = document.createElement("h4");
+        title.contentEditable = "true";
+        title.textContent = habitName;
+        title.className = "editable-title";
+        title.onblur = saveHabitsToStorage;
+
+        const menuBtn = document.createElement("button");
+        menuBtn.innerText = "⋮";
+        menuBtn.className = "menu-button";
+
+        const menuOptions = document.createElement("div");
+        menuOptions.className = "menu-options";
+        menuOptions.style.display = "none";
+
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "Edit";
+        editBtn.className = "edit-btn";
+        editBtn.onclick = () => {
+          const newName = prompt("Edit habit name:", title.textContent);
+          if (newName && newName.trim()) {
+            title.textContent = newName.trim();
+            saveHabitsToStorage();
+          }
+          menuOptions.style.display = "none";
+        };
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.className = "delete-btn";
+        deleteBtn.onclick = () => {
+          container.remove();
+          saveHabitsToStorage();
+        };
+
+        menuOptions.appendChild(editBtn);
+        menuOptions.appendChild(deleteBtn);
+
+        menuBtn.onclick = () => {
+          menuOptions.style.display = menuOptions.style.display === "none" ? "block" : "none";
+        };
+
+        const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        const checkboxes = [];
+        const daysContainer = document.createElement("div");
+        daysContainer.className = "days";
+
+        days.forEach((day, i) => {
+          const label = document.createElement("label");
+          const checked = checks[i] || false;
+          label.innerHTML = `<input type="checkbox" ${checked ? "checked" : ""}> ${day}`;
+          const cb = label.querySelector("input");
+          cb.onchange = () => {
+            updateProgress();
+            saveHabitsToStorage();
+          };
+          checkboxes.push(cb);
+          daysContainer.appendChild(label);
+        });
+
+        const counter = document.createElement("div");
+        counter.className = "counter";
+
+        const progress = document.createElement("div");
+        progress.className = "progress-bar";
+
+        function updateProgress() {
+          const count = checkboxes.filter(c => c.checked).length;
+          counter.innerText = `${count}/7`;
+          const percent = (count / 7) * 100;
+          progress.style.width = `${percent}%`;
+          if (count >= 7) progress.style.background = "green"; // Use 7 for full completion
+          else if (count >= 4) progress.style.background = "orange";
+          else progress.style.background = "red"; // Default or low progress
+        }
+
+        updateProgress();
+
+        container.appendChild(menuBtn);
+        container.appendChild(menuOptions);
+        container.appendChild(title);
+        container.appendChild(daysContainer);
+        container.appendChild(counter);
+        container.appendChild(progress);
+
+        habitsContainer.appendChild(container);
+        if (!name) document.getElementById("NewHabit").value = "";
+
+        saveHabitsToStorage();
+    }
+
+    // --- Modal Functionality ---
+    var modal = document.getElementById("feelingModal");
+    var btn = document.querySelector(".feeling-button");
+    var span = document.querySelector(".modal .modal-content .close-button-feeling");
+    
+    var feelingInput = document.getElementById("feelingInput");
+    var feelingSuggestion = document.getElementById("feelingSuggestion");
+    var getSuggestionBtn = document.getElementById("getSuggestionBtn");
+
+    if (btn) { // Add checks to prevent errors if elements are missing
+        btn.onclick = function() {
+          if(modal) modal.style.display = "block";
+          if(feelingSuggestion) feelingSuggestion.textContent = "Enter how you feel and click the button above.";
+          if(feelingInput) feelingInput.value = "";
+          if(getSuggestionBtn) getSuggestionBtn.disabled = false;
+        }
+    }
+        span.onclick = function() {
+         if(modal) modal.style.display = "none";
+        }
+    
+
+    window.onclick = function(event) {
+      if (event.target == modal) {
+        if(modal) modal.style.display = "none";
+      }
+    }
+
+    if (getSuggestionBtn) {
+        getSuggestionBtn.onclick = async function() {
+            const userFeeling = feelingInput.value.trim();
+            if (!userFeeling) {
+                feelingSuggestion.textContent = "Please enter how you are feeling first.";
+                return;
+            }
+            feelingSuggestion.textContent = "Generating suggestion...";
+            getSuggestionBtn.disabled = true;
+            feelingInput.disabled = true;
+            try {
+                const apiUrl = '/api/get-suggestion'; // Use relative path
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json',},
+                    body: JSON.stringify({ feeling: userFeeling })
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: `Server error: ${response.status}` }));
+                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.suggestion) {
+                    feelingSuggestion.textContent = data.suggestion;
+                } else {
+                    throw new Error("Received an empty suggestion from the server.");
+                }
+            } catch (error) {
+                console.error("Error fetching suggestion:", error);
+                feelingSuggestion.textContent = `Sorry, couldn't get a suggestion. Error: ${error.message}`;
+            } finally {
+                getSuggestionBtn.disabled = false;
+                feelingInput.disabled = false;
+            }
+        };
+    }
+
+    // --- ============================================ ---
+    // --- ADDED: Motivation Feature JavaScript Logic ---
+    // --- ============================================ ---
+    const motivationTextElement = document.getElementById('motivationText');
+    const refreshMotivationBtn = document.getElementById('refreshMotivationBtn');
+
+    async function fetchMotivation() {
+      // Add checks for element existence
+      if (!motivationTextElement || !refreshMotivationBtn) {
+          console.error("Motivation elements (text or button) not found in the DOM.");
+          if (motivationTextElement) motivationTextElement.textContent = 'UI Element Missing.'; // Inform user
+          return;
+      }
+
+      // UI Feedback: Loading state
+      motivationTextElement.textContent = 'Fetching new motivation...';
+      refreshMotivationBtn.disabled = true;
+
+      try {
+        // Use relative URL since frontend and backend are same origin
+        const response = await fetch('/api/get-motivation'); // GET request
+
+        if (!response.ok) {
+          // Try to parse JSON error, provide fallback
+          const errorData = await response.json().catch(() => ({ message: `Server error fetching motivation: ${response.status}` }));
+          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json(); // Expect { motivation: "..." }
+
+        if (data.motivation) {
+          motivationTextElement.textContent = data.motivation;
+        } else {
+          // Handle case where API returns success (200) but no motivation text
+          throw new Error("Received empty motivation from server.");
+        }
+
+      } catch (error) {
+        console.error("Error fetching motivation:", error);
+        motivationTextElement.textContent = 'Could not load motivation. Try again?'; // User-friendly error
+      } finally {
+        // Reset UI state, ensure button is re-enabled
+        refreshMotivationBtn.disabled = false;
+      }
+    }
+
+    // Add event listener for the refresh button
+    if (refreshMotivationBtn) {
+      refreshMotivationBtn.addEventListener('click', fetchMotivation);
+    } else {
+        console.error("Refresh motivation button not found - listener not added.");
+    }
+    // --- END ADDED Motivation Feature ---
+
+  </script>
+
+  <!-- ****** SCRIPT BLOCK 2: Firebase Auth Logic ****** -->
+  <script type="module">
+    // Make sure all necessary functions are imported
+    import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+    import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCppeBOjRp0MSA1EF714hOgYKgZTeNsrQY", // Replace with your actual key if needed
+      authDomain: "log-in-a6af9.firebaseapp.com",
+      projectId: "log-in-a6af9",
+      storageBucket: "log-in-a6af9.appspot.com",
+      messagingSenderId: "407902316470",
+      appId: "1:407902316470:web:bfcfd8469971d1d0c30317"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Auth State Change Listener
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        // User is signed in
+        const nameSpan = document.querySelector(".name"); // Get reference inside the listener
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if(nameSpan) { // Check if element exists
+            if (docSnap.exists()) {
+              const username = docSnap.data().name || "User";
+              nameSpan.textContent = username;
+            } else {
+              console.log("User document not found in Firestore for UID:", user.uid);
+              nameSpan.textContent = "User"; // Default name
+            }
+        } else {
+            console.error("Greeting name span element not found.");
+        }
+
+
+        // *** ADDED: Call fetchMotivation() on successful login/page load ***
+        // Ensure the function is available globally or passed correctly if needed
+        if (typeof fetchMotivation === 'function') {
+             fetchMotivation(); // Fetch initial motivation
+        } else {
+             console.error("fetchMotivation function is not defined when needed.");
+        }
+        // *** END ADDED ***
+
+      } else {
+        // User is signed out
+        console.log("User signed out, redirecting to login.");
+        window.location.href = "index.html"; // Redirect to login page
+      }
+    });
+
+    // Logout Logic
+    const logoutBtn = document.getElementById("logout");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        signOut(auth)
+          .then(() => {
+            console.log("Sign out successful");
+            // No need to redirect here, onAuthStateChanged will handle it
+          })
+          .catch((error) => {
+            console.error("Logout error:", error);
+          });
+      });
+    } else {
+        console.error("Logout button not found.");
+    }
+    // --- ===================================== ---
+// --- NEW: AI Chat Modal Functionality      ---
+// --- ===================================== ---
+const aiChatModal = document.getElementById('aiChatModal');
+const openAiChatBtn = document.getElementById('openAiChatBtn');
+const closeAiChatBtn = document.querySelector('.close-ai-chat-modal'); // Use specific class
+const aiChatMessages = document.getElementById('aiChatMessages');
+const aiChatInput = document.getElementById('aiChatInput');
+const sendAiChatMessageBtn = document.getElementById('sendAiChatMessageBtn');
+
+// Function to add a message to the chat display
+function addChatMessage(message, sender) {
+    if (!aiChatMessages) return;
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
+    // Basic text sanitization (replace < and > to prevent HTML injection)
+    const sanitizedMessage = message.replace(/</g, "<").replace(/>/g, ">");
+    messageDiv.innerHTML = sanitizedMessage; // Use innerHTML after sanitizing if needed, or textContent
+    aiChatMessages.appendChild(messageDiv);
+    // Scroll to the bottom
+    aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+}
+
+// Function to handle sending a message
+async function sendAiChatMessage() {
+    if (!aiChatInput || !sendAiChatMessageBtn || !aiChatMessages) return;
+
+    const userMessage = aiChatInput.value.trim();
+    if (!userMessage) return; // Don't send empty messages
+
+    addChatMessage(userMessage, 'user'); // Display user message
+    aiChatInput.value = ''; // Clear input
+
+    // UI feedback for loading
+    aiChatInput.disabled = true;
+    sendAiChatMessageBtn.disabled = true;
+    sendAiChatMessageBtn.textContent = 'Thinking...';
+
+    try {
+        const response = await fetch('/api/ai-coach-chat', { // API endpoint
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: userMessage })
+        });
+
+        const data = await response.json(); // Always try to parse JSON
+
+        if (!response.ok) {
+             // Display specific error/blocked message from backend if available
+            if (data.reply) {
+                 addChatMessage(data.reply, 'ai'); // Show backend's safety message
+            } else {
+                // Fallback error message
+                throw new Error(data.message || `HTTP error! Status: ${response.status}`);
+            }
+        } else {
+             // Successful response
+             if (data.reply) {
+                addChatMessage(data.reply, 'ai');
+             } else {
+                addChatMessage("Sorry, I couldn't generate a response.", 'ai'); // Handle empty success response
+             }
+        }
+
+    } catch (error) {
+        console.error("Error fetching AI Coach response:", error);
+        addChatMessage(`Sorry, an error occurred: ${error.message}`, 'ai'); // Display error
+    } finally {
+        // Restore UI
+        aiChatInput.disabled = false;
+        sendAiChatMessageBtn.disabled = false;
+        sendAiChatMessageBtn.textContent = 'Send';
+        aiChatInput.focus();
+    }
+}
+
+// Event Listeners for AI Chat
+if (openAiChatBtn) {
+    openAiChatBtn.onclick = () => {
+        if (aiChatModal) aiChatModal.style.display = 'block';
+        if (aiChatInput) aiChatInput.focus();
+    };
+}
+if (closeAiChatBtn) {
+    closeAiChatBtn.onclick = () => {
+        if (aiChatModal) aiChatModal.style.display = 'none';
+    };
+}
+if (sendAiChatMessageBtn) {
+    sendAiChatMessageBtn.onclick = sendAiChatMessage;
+}
+if (aiChatInput) {
+    aiChatInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) { // Send on Enter, allow Shift+Enter for newline if needed
+            e.preventDefault();
+            sendAiChatMessage();
+        }
+    });
+}
+// --- END NEW AI Chat ---
+  </script>
+</body>
+</html>
