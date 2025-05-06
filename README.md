@@ -104,8 +104,7 @@ Habit Tracker — это веб-приложение, разработанное
 Выполните следующие шаги для установки и запуска проекта:
 
 **1. Необходимые компоненты:**
-    *   Node.js и npm (Node Package Manager)
-    *   Firebase CLI: `npm install`
+    *   Node.js и npm (Node Package Manager): `npm install`
 
 **2. Клонировать репозиторий:**
     ```bash
