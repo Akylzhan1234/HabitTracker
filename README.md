@@ -107,7 +107,7 @@ Habit Tracker — это веб-приложение, разработанное
     *   Node.js и npm (Node Package Manager): `npm install`
 
 **2. Клонировать репозиторий:**
-    ```bash
+    ```
     git clone https://github.com/Akylzhan1234/HabitTracker
     cd HabitTracker
     ```
